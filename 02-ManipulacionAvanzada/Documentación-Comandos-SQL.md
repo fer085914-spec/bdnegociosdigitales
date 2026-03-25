@@ -1,273 +1,227 @@
-# Manual Maestro de SQL: Tipos de Datos, Lógica y Consultas
+# Comandos de SQL
 
-Este documento es una guía completa basada en scripts de SQL Server. Se centra en la definición precisa de tipos de datos, la lógica de filtrado avanzado y la estructura correcta de consultas.
-
----
-
-## 1. DDL: Definición de Estructura y Tipos de Datos
-
-Esta sección detalla los componentes básicos para construir tablas. Es fundamental elegir el tipo de dato correcto para optimizar el almacenamiento y evitar errores.
-
-### 1.1 Tipos de Datos Comunes
-
-A continuación se describen los tipos de datos utilizados en los scripts, sus características y cuándo usarlos.
-
-| Tipo de Dato | Descripción Detallada | Uso Común | Ejemplo |
-| :--- | :--- | :--- | :--- |
-| **`INT`** | Números enteros (sin decimales). Rango aproximado de -2 mil millones a 2 mil millones. | Identificadores (IDs), edades, contadores, cantidades enteras. | `45`, `1024` |
-| **`NVARCHAR(n)`** | Cadena de caracteres **variable** Unicode. La 'N' permite caracteres especiales (tildes, ñ, kanjis). La '(n)' es la longitud máxima. Si guardas "Hola" en un `NVARCHAR(50)`, solo ocupa el espacio de "Hola". | Nombres, apellidos, direcciones, correos electrónicos. | `'Goku'`, `'Av. Siempre Viva'` |
-| **`NCHAR(n)`** | Cadena de caracteres **fija** Unicode. Si defines `NCHAR(10)` y guardas "Hola", el sistema rellena los 6 espacios restantes con blancos. | Códigos de estado, abreviaturas fijas, sexo (M/F). | `'F'`, `'MX'` |
-| **`MONEY`** | Tipo numérico optimizado para dinero. Tiene una precisión fija de 4 decimales. Es más preciso que `FLOAT` para cálculos financieros. | Precios, salarios, límites de crédito, costos. | `500.00`, `19.99` |
-| **`DATE`** | Almacena únicamente la fecha (Año-Mes-Dia), sin hora. Rango: 0001-01-01 a 9999-12-31. | Fechas de nacimiento, fechas de registro, fechas de vencimiento. | `'1999-05-06'` |
-| **`CHAR(n)`** | Igual que `NCHAR` pero sin soporte Unicode (solo caracteres estándar ASCII). Ocupa menos espacio si no necesitas tildes o caracteres especiales. | Códigos internos, banderas booleanas simples ('S'/'N'). | `'A'`, `'B'` |
-
-### 1.2 Restricciones y Propiedades de Columna
-
-Reglas que se aplican a las columnas para garantizar la integridad de los datos.
-
-#### IDENTITY(semilla, incremento)
-Propiedad de automatización.
-* **Semilla:** Valor inicial (ej. 1).
-* **Incremento:** Cuánto suma por cada fila nueva (ej. 1).
-* *Nota:* No se insertan datos aquí manualmente; el sistema lo llena solo.
-
-#### NOT NULL vs NULL
-* **`NOT NULL`**: Obliga a ingresar un dato. Si intentas dejarlo vacío, dará error.
-* **`NULL`**: Permite la ausencia de valor (útil para datos opcionales como "segundo apellido").
-
-#### DEFAULT
-Inserta un valor predefinido si el usuario no envía nada.
-* Ejemplo: `DEFAULT GETDATE()` inserta la fecha/hora actual automáticamente.
+Este documento explica la definición de tipos de datos, filtrado, operadores y la estructura  de diversas consultas.
 
 ---
 
-## 2. Lógica de Consultas: El Operador LIKE
+## 1. Lenguaje de Definición de Datos (DDL)
 
-El operador `LIKE` se usa en la cláusula `WHERE` para buscar patrones en cadenas de texto. Es mucho más flexible que el operador igual (`=`).
+Comandos para construir la base de datos y si estructura principal.
 
-### Tabla de Comodines (Wildcards)
+### 1.1 Configuración Inicial
 
-| Comodín | Descripción | Ejemplo de Patrón | Resultado |
-| :--- | :--- | :--- | :--- |
-| **`%`** (Porcentaje) | Representa **cero o más** caracteres. Es el más usado. | `'A%'` | Todo lo que empiece con A (Ana, Alberto). |
-| | | `'%s'` | Todo lo que termine en s (Casas, Mes). |
-| | | `'%mé%'` | Contiene "mé" en cualquier parte (México, América). |
-| **`_`** (Guion bajo) | Representa **exactamente un** carácter cualquiera. | `'C_sa'` | Casa, Cosa (pero NO Causa). |
-| | | `'_n%'` | La segunda letra es 'n' (Ana, Uno). |
-| **`[]`** (Corchetes) | Representa **cualquier carácter individual** dentro del rango o lista especificada. | `'[abc]%'` | Empieza con a, b, O c. |
-| | | `'[a-f]%'` | Empieza con cualquier letra de la 'a' a la 'f'. |
-| **`[^]`** (Circunflejo) | **Negación**. Representa cualquier carácter que **NO** esté en la lista. | `'[^a-c]%'` | NO empieza ni con a, ni con b, ni con c. |
+**CREATE DATABASE:** Reserva el espacio en el servidor para la base de datos.
 
----
+**USE:** Establece que la base de datos se activará o estará en uso. Todos los comandos que se ejecuten después afectarán a la base seleccionada.
 
-## 3. Teoría Avanzada: Agrupamiento y Filtrado
+**GO:** Es un separador exclusivo de SQL Server. Indica que debe procesar y finalizar las instrucciones anteriores antes de continuar con las siguientes.
 
-Esta es la parte más crítica para entender consultas complejas. La diferencia entre `WHERE` y `HAVING` suele ser confusa, pero es vital.
 
-### 3.1 Comparación: WHERE vs HAVING
-
-Ambos sirven para filtrar datos, pero actúan en momentos diferentes del procesamiento.
-
-| Característica | **WHERE** | **HAVING** |
-| :--- | :--- | :--- |
-| **Cuándo actúa** | **ANTES** de agrupar (`GROUP BY`). | **DESPUÉS** de agrupar y calcular agregados. |
-| **Qué filtra** | Filtra **filas individuales** (registro por registro). | Filtra **grupos completos** basándose en un resultado matemático. |
-| **Uso de Agregados** | **PROHIBIDO**. No puedes usar `SUM()`, `COUNT()`, etc. aquí. | **OBLIGATORIO/PERMITIDO**. Se usa para condiciones como `SUM(ventas) > 1000`. |
-| **Ejemplo Mental** | "Quiero solo las ventas de México". | "Quiero los países donde la suma total de ventas superó $10,000". |
-
-### 3.2 La Regla de Oro del GROUP BY
-Si en tu `SELECT` mezclas **columnas normales** (ej. `CategoryName`) con **funciones de agregado** (ej. `COUNT(*)`), **TODAS** las columnas normales deben ir obligatoriamente en la cláusula `GROUP BY`.
-
-* *Incorrecto:* `SELECT CategoryID, COUNT(*) FROM Products` (Falta agrupar).
-* *Correcto:* `SELECT CategoryID, COUNT(*) FROM Products GROUP BY CategoryID`.
-
----
-
-## 4. Scripts y Ejercicios Prácticos
-
-A continuación, se presentan los scripts originales organizados con la lógica descrita anteriormente.
-
-### 4.1 Creación de Base de Datos y Tablas (DDL)
-
+**EJEMPLO**:
 ```sql
--- Crea una base de datos
 CREATE DATABASE tienda;
 GO
 
 USE tienda;
 GO
-
--- Tabla con tipos de datos básicos y restricciones NULL/NOT NULL
-CREATE TABLE cliente(
-    id INT not null,
-    nombre NVARCHAR(30) not null,
-    apaterno NVARCHAR(10) not null,
-    amaterno NVARCHAR(10) null, -- Permite nulos
-    sexo NCHAR(1) not null,     -- Longitud fija
-    edad INT not null,
-    direccion NVARCHAR(80) not null,
-    rfc NVARCHAR(20) not null,
-    limitecredito MONEY not null default 500.0 -- Valor por defecto
-);
-GO
-
--- Tabla con Primary Key definida
-CREATE TABLE clientes(
-    cliente_id INT NOT NULL PRIMARY KEY,
-    nombre NVARCHAR(30) NOT NULL,
-    apellido_paterno NVARCHAR(20) NOT NULL,
-    apellido_materno NVARCHAR(20),
-    edad INT NOT NULL,
-    fecha_nacimiento DATE NOT NULL,
-    limite_credito MONEY NOT NULL
-);
-GO
-
 ```
 
-### 4.2 Inserción de Datos (DML)
+### 1.2 Tablas y Tipos de Datos
 
-Ejercicios mostrando las diferentes sintaxis de `INSERT`.
+**CREATE TABLE:** Se usa para definir una nueva tabla dentro de una base de datos. Esta puede crearse de diferentes maneras, por ejemplo:
 
-```sql
--- 1. Inserción de todos los campos en orden
-INSERT INTO clientes 
-VALUES(1, 'Goku', 'Linterna', 'Superman', 450, '1578-01-17', 100);
+- **Tabla Estándar o Básica:** Estructura permanente y básica que solo define los nombres de las columnas y sus tipos de datos.
 
--- 2. Inserción especificando columnas (útil para saltar nulos o cambiar orden)
-INSERT INTO clientes 
-(nombre, cliente_id, limite_credito, fecha_nacimiento, apellido_paterno, edad)
-VALUES('Arcadia', 3, 45800, '2000-01-22', 'Ramirez', 26);
+- **Tabla con Restricciones:** Tabla permanente a la que se le aplica integridad *(llaves primarias, llaves foráneas, validaciones, valores por defecto y autoincrementables)*.
 
--- 3. Inserción múltiple (varias filas a la vez)
-INSERT INTO clientes 
-VALUES
-(5, 'Soyla', 'Vaca', 'del Corral', 42, '1983-04-06', 78955),
-(6, 'Bad Bunny', 'Perez', 'sin Sentido', 22, '1999-05-06', 85858);
+A continuación se describen los tipos de datos usados en los diferentes scripts, previamente realizados:
 
-```
+| Tipo de Dato | Descripción | Uso Común |
+| --- | --- | --- |
+| **`INT`** | Números enteros.  | IDs, edades, cantidades enteras. |
+| **`NVARCHAR(n)`** | Cadena de caracteres **variable**.  La '(n)' es la longitud máxima. | Nombres, apellidos, direcciones, correos electrónicos. |
+| **`NCHAR(n)`** | Cadena de caracteres **fija**. Si defines `NCHAR(10)` y guardas "Hola", el sistema rellena los 6 espacios restantes con blancos. | Códigos, abreviaturas, sexo. |
+| **`DATE`** | Fecha (Año-Mes-Dia).| Fechas de nacimiento, fechas de vencimiento. |
+| **`CHAR(n)`** | Igual que `NCHAR` pero sin soporte Unicode. | Códigos internos. |
 
-### 4.3 Uso de IDENTITY y Valores por Defecto
-
-Uso de `IDENTITY(1,1)` para autoincrementar IDs y `GETDATE()` para fechas automáticas.
-
-```sql
-CREATE TABLE clientes_2(
-    cliente_id INT not null IDENTITY(1,1), -- Empieza en 1, suma 1
-    nombre NVARCHAR(50) not null,
-    edad INT not null,
-    fecha_registro DATE DEFAULT GETDATE(), -- Fecha del sistema
-    limite_credito MONEY not null,
-    CONSTRAINT pk_clientes_2 PRIMARY KEY (cliente_id)
-);
-
--- Al insertar, se usa DEFAULT o se omite la columna
-INSERT INTO clientes_2 VALUES ('Chespirito', 89, DEFAULT, 45500);
+ ---
 
 ```
-
-### 4.4 Restricciones Avanzadas (CHECK, UNIQUE)
-
-Validación de integridad de datos.
-
-```sql
-CREATE TABLE suppliers (
-    supplier_id INT NOT NULL IDENTITY(1,1),
-    [name] NVARCHAR(30) NOT NULL,
-    tipo CHAR(1) NOT NULL,
-    credit_limit MONEY NOT NULL,
-    
-    CONSTRAINT pk_suppliers PRIMARY KEY ( supplier_id ),
-    CONSTRAINT unique_name UNIQUE ([name]), -- No permite nombres repetidos
-    CONSTRAINT chk_credit_limit CHECK (credit_limit > 0 and credit_limit <= 50000), -- Valida rango
-    CONSTRAINT chk_tipo CHECK (tipo in ('A', 'B', 'C')) -- Valida lista permitida
-);
-
+UNICODE es el estándar que permite representar caracteres de todos
+ los idiomas. Es decir, la forma en que SQL Server entiende letras, símbolos y caracteres especiales además de los del alfabeto inglés.
 ```
 
-### 4.5 Consultas con LIKE (Patrones)
+### 1.3 Restricciones
 
-Ejercicios prácticos de los comodines explicados en la sección 2.
+Las restricciones son reglas que se aplican a las columnas para garantizar la integridad de los datos.
+
+**IDENTITY:** Es un contador automático que maneja la base de datos. Se le indica en qué número empezar y de cuánto en cuánto ir sumando. El sistema toma el control, calcula el siguiente número de la secuencia y lo inserta.
+
+**NOT NULL vs NULL:** Definir si un campo es obligatorio u opcional. Con `NOT NULL` se obliga a que siempre venga un dato; si intento guardar el registro con ese espacio vacío, el sistema me va a tirar un error. Si lo dejo como `NULL`, le digo a la base de datos que no hay problema si ese dato falta.
+
+**DEFAULT:** Es mi valor de relleno automático. Si al guardar un registro simplemente no mando ningún dato para esa columna, el sistema se da cuenta y rellena el hueco por su cuenta con el valor por defecto que yo le haya configurado antes.
+
+**Llave Primaria (PRIMARY KEY):** Es el identificador único y súper estricto de cada fila en la tabla. Funciona como el documento de identidad irrepetible de cada registro.
+
+**Llave Foránea (FOREIGN KEY):** Es la regla para conectar dos tablas sin que se rompa la coherencia. Me garantiza que un dato que intento meter en mi tabla actual hace referencia a un registro que *realmente existe* en la otra tabla.
+
+**Validaciones (CHECK):** Son filtros lógicos. Le digo al sistema que, antes de guardar cualquier cosa, revise que el dato cumpla con una condición específica. Si el dato no pasa esa prueba, la base de datos lo rechaza de inmediato.
+
+---
+
+## 2. Jerarquía  de Operadores
+
+Cuando una consulta tiene varias condiciones, SQL sigue un orden de evaluación.
+
+Lista los operadores por prioridad:
+
+| Nivel | Categoría | Operador | Descripción |
+| --- | --- | --- | --- |
+| **1** | **Agrupación** | `( )` | **Paréntesis.** Rompen cualquier regla de precedencia. |
+| **2** | **Aritméticos** | `*`, `/`, `%` | Multiplicación, División y Módulo. |
+| **3** | **Aritméticos y Cadena** | `+`, `-`, ` |  |
+| **4** | **Comparación** | `=`, `>`, `<`, `<>`, `>=`, `<=` | Comparan valores y devuelven Verdadero/Falso. |
+| **5** | **Predicados** | `LIKE`, `IN`, `BETWEEN` | Operadores especiales de comparación (patrones, listas, etc.). |
+| **6** | **Negación** | `NOT` | Invierte el valor de verdad. |
+| **7** | **Conjunción** | `AND` |  |
+| **8** | **Disyunción** | `OR` |  |
+
+---
+
+## 3. Lógica de Consultas: El Operador LIKE
+
+El operador `LIKE` se usa en la cláusula `WHERE` para buscar patrones en texto.
+
+### Wildcards
+
+| Comodín | Descripción | Ejemplo de Patrón | Resultado |
+| --- | --- | --- | --- |
+| **`%`** | Representa **cero o más** caracteres. | `'A%'` | Todo lo que empiece con A. |
+|  |  | `'%s'` | Todo lo que termine en s. |
+|  |  | `'%is%'` | Contiene "is" en cualquier parte. |
+| **`_`** | Representa **un** carácter . | `'C_sa'` | Casa, Cosa. |
+| **`[]`** (Corchetes) | Representa **cualquier carácter individual** dentro del rango o lista especificada. | `'[abc]%'` | Empieza con **A**, **B**, o **C**. |
+|  |  | `'[a-f]%'` | Empieza con cualquier letra de la 'a' a la 'f'. |
+| **`[^]`** (Circunflejo) | **Negación**. Representa cualquier carácter que **NO** esté en la lista. | `'[^a-c]%'` | NO empieza ni con a, ni con b, ni con c. |
+
+---
+
+## 4.  Campos Calculados, Agregados y Alias
+
+### 4.1 Campos Calculados
+
+Un campo calculado es una columna que **no existe** en el disco duro de la base de datos. Se calcula en la memoria RAM del servidor cada vez que se ejecuta el `SELECT`.
+
+Se utilizan para no guardar datos redundantes.
+
+- **Cálculos Aritméticos:** Siguen las mismas reglas de precedencia matemática que se mencionaron anteriormente.
 
 ```sql
--- Comienza con 'a'
-SELECT * FROM Customers WHERE CompanyName LIKE 'a%';
-
--- Contiene 'mé'
-SELECT * FROM Customers WHERE City LIKE '%mé%';
-
--- Patrón específico: Segunda letra es 'n' (L_nd__)
-SELECT * FROM Customers WHERE city LIKE 'L_nd__';
-
--- Rango: Comienza con a, b, c, d, e o f
-SELECT * FROM Customers WHERE CustomerID LIKE '[a-f]%';
-
--- Negación: NO empieza con b, s, o p
-SELECT * FROM Customers WHERE CompanyName LIKE '[^bsp]%';
-
+-- Cálculo simple
+SELECT (UnitPrice * UnitsInStock) AS [Costo Inventario]
+FROM Products;
 ```
 
-### 4.6 Agregación, Group By y Having
-
-Aplicación de la teoría de la sección 3.
-
-**Ejemplo 1: GROUP BY Simple**
-Contar cuántos productos hay por cada categoría.
+- **Manipulación de Cadenas de Texto:** Alterar cómo se ven los textos desde la consulta usando funciones del sistema.
 
 ```sql
-SELECT 
-    CategoryID, 
-    COUNT(*) AS [Total de productos]
-FROM Products
-GROUP BY CategoryID
-ORDER BY 2 DESC;
+-- Concatenación: Unir varias columnas
+SELECT FirstName + ' ' + LastName AS [Nombre Completo]
+FROM Employees;
 
-```
-
-**Ejemplo 2: WHERE + GROUP BY + HAVING**
-Este ejercicio combina todo:
-
-1. Filtra filas con `WHERE` (Países específicos).
-2. Agrupa con `GROUP BY` (Por cliente).
-3. Filtra el grupo con `HAVING` (Más de 10 órdenes).
-
-```sql
-SELECT CustomerID, COUNT(*) AS [Numero de ordenes]
-FROM Orders
-WHERE ShipCountry IN ('Germany', 'France', 'Brazil') -- Filtro antes de agrupar
-GROUP BY CustomerID                              -- Agrupamiento
-HAVING COUNT(*) > 10                             -- Filtro después de agrupar
-ORDER BY 2 DESC;
-
-```
-
-**Ejemplo 3: Cálculo Complejo con JOINS**
-Seleccionar empleados que hayan vendido más de 100,000.
-
-* Nota: Aquí se ve claramente que la condición `> 100000` aplica sobre la `SUMA`, por eso va en `HAVING`.
-
-```sql
-SELECT 
-    CONCAT(e.FirstName, ' ', e.LastName) AS [Nombre completo], 
-    ROUND(SUM(od.Quantity * od.UnitPrice * ( 1 - od.Discount)),2) AS [Importe]
-FROM Employees AS e
-INNER JOIN Orders AS o ON e.EmployeeID = o.EmployeeID
-INNER JOIN [Order Details] AS od ON o.OrderID = od.OrderID
-GROUP BY e.FirstName, e.LastName
-HAVING SUM(od.Quantity * od.UnitPrice * ( 1 - od.Discount)) > 100000
-ORDER BY Importe DESC;
-
+-- Transformación
+SELECT UPPER(CompanyName) AS [Empresa en Mayusculas]
+FROM Customers;
 ```
 
 ---
 
-## 5. Nota Final: Flujo de Ejecución
+### 4.2 Funciones de Agregado
 
-Recuerda siempre este orden interno al diseñar tus consultas, ya que explica por qué no puedes usar un alias del SELECT en el WHERE:
+Las funciones de agregado toman múltiples filas de  y las colapsan en un único valor de salida. Si no se usa `GROUP BY`, aplicar una función de agregado convertirá toda la tabla en una sola fila de resultados.
 
-1. **FROM / JOIN** (Carga datos)
-2. **WHERE** (Filtra filas)
-3. **GROUP BY** (Crea grupos)
-4. **HAVING** (Filtra grupos)
-5. **SELECT** (Muestra columnas y calcula)
-6. **ORDER BY** (Ordena el resultado)
+#### Los Nulos (`NULL`)
+**Todas las funciones de agregado ignoran los valores `NULL`, excepto `COUNT(*)`.**
+
+
+| Función | Descripción |
+| :--- | :--- |
+| **`COUNT(*)`** | Cuenta el número total de filas en la tabla o grupo, sin importarle si las columnas tienen datos o están vacías. |
+| **`COUNT(columna)`** | Cuenta solo las filas donde la columna especificada *NO* es `NULL`. |
+| **`SUM(columna)`** | Suma todos los valores numéricos de una columna. Si encuentra un `NULL`, lo ignora como si fuera un cero. |
+| **`AVG(columna)`** | Suma los valores y los divide entre la cantidad de filas *que tienen datos*.. |
+| **`MAX(columna)`** | **El valor máximo.** Funciona con números (el más alto), fechas (la más reciente) y textos (el último en orden alfabético Z-A). |
+| **`MIN(columna)`** | **El valor mínimo.** Funciona con números (el más bajo), fechas (la más antigua) y textos (el primero en orden alfabético A-Z). |
+
+---
+
+### 4.3 Alias (`AS`)
+
+Un alias es un "apodo" temporal que se le da a una columna o a una tabla. Este apodo solo existe durante los milisegundos que tarda en ejecutarse la consulta.
+
+#### 4.3.1 Alias de Columna
+
+Sirven para dar nombres presentables a los resultados, especialmente cuando se usan campos calculados.
+
+**Sintaxis permitidas en SQL Server:**
+```sql
+-- 1.
+SELECT UnitPrice AS Precio FROM Products;
+
+-- 2. Con espacios (Requiere corchetes)
+SELECT UnitPrice AS [Precio Unitario] FROM Products;
+```
+
+---
+
+#### 4.3.2 Alias de Tabla
+
+Cuando se empiezan a cruzar tablas usando `INNER JOIN`, los nombres de las columnas pueden repetirse. Para evitar ambigüedad , le damos un alias de una o dos letras a las tablas en la cláusula `FROM`.
+
+```sql
+-- Sin Alias de tabla
+SELECT Customers.CompanyName, Orders.OrderDate
+FROM Customers
+INNER JOIN Orders ON Customers.CustomerID = Orders.CustomerID;
+
+-- Con Alias de tabla
+SELECT c.CompanyName, o.OrderDate
+FROM Customers AS c
+INNER JOIN Orders AS o 
+ON c.CustomerID = o.CustomerID;
+```
+---
+
+## 5. Agrupamiento y Filtrado (Mis reglas de oro)
+
+### 5.1 Conceptos: WHERE, GROUP BY y HAVING
+
+- **`WHERE`:** Usado para limpiar la tabla y descartar filas individuales que no me sirven. 
+
+- **`GROUP BY`:** Una vez que el `WHERE` me deja solo las filas que me importan, se usa `GROUP BY` para "apilarlas" en grupos según alguna categoría. Esto es indispensable cuando se usan funciones de **agregado**. Por ejemplo si en mi instrucción `SELECT` pongo una columna  mezclada con una fórmula (ej. `COUNT(*)`), **estoy obligado** a poner esa columna normal dentro del `GROUP BY`.
+
+- **`HAVING`:** Este es el segundo filtro, pero funciona muy distinto al primero. Este solo evalúa los grupos que el `GROUP BY` arma.
+
+---
+
+### 5.2 Tabla Comparativa: WHERE vs HAVING
+
+
+| Característica | **WHERE** | **HAVING** |
+| :--- | :--- | :--- |
+| **Momento de acción** | Actúa **ANTES** de agrupar los datos (`GROUP BY`). | Actúa **DESPUÉS** de agrupar y calcular agregados. |
+| **Qué evalúa** | Filtra **filas individuales**. | Filtra **grupos** basándose en un resultado matemático. |
+| **Uso de Agregados** | **PROHIBIDO**. Dará error si se intenta usar `SUM()`, `COUNT()`, `MAX()`, etc. aquí. | **PERMITIDO Y NECESARIO**. Su propósito principal es evaluar condiciones como `SUM(ventas) > 1000`. |
+
+---
+
+### 6. El flujo de ejecución interno (Por qué SQL es tan estricto)
+
+La base de datos no lee el código de arriba hacia abajo (como esta escrito), sino que lo procesa internamente en este orden:
+
+1. **`FROM` / `JOIN`:** Primero va y busca las tablas de donde sacará la información.
+2. **`WHERE`:** Aplica mi primer filtro y "tira a la basura" las filas que no cumplen la condición.
+3. **`GROUP BY`:** Agarra lo que sobrevivió y arma los grupos.
+4. **`HAVING`:** Revisa los grupos, hace las matemáticas y desecha los grupos que no cumplen la condición.
+5. **`SELECT`:** Se fija qué columnas quiero mostrar le pone los "Alias" (los nombres temporales)
+6. **`ORDER BY`:** Al final, toma el resultado y lo ordena alfabéticamente o de mayor a menor.
