@@ -94,29 +94,29 @@ BEGIN
 
         IF NOT EXISTS (SELECT 1 FROM CatCliente WHERE id_cliente = @id_cliente)
         BEGIN
-            PRINT 'El cliente no existe';
-            ROLLBACK;
-            RETURN;
+            
+            ; THROW 50001, 'El cliente no se encontró', 1;
+
         END
 
         IF NOT EXISTS (SELECT 1 FROM CatProducto WHERE id_producto = @id_producto)
         BEGIN
-            PRINT 'El producto no existe';
-            ROLLBACK;
-            RETURN;
+            
+            ; THROW 50002, 'El producto no se encontró o no esta disponible', 1;
+
         END
 
         DECLARE @existencia INT ;
         DECLARE @precio MONEY;
-        SELECT existencia = existencia, precio = @precio
+        SELECT @existencia = existencia, @precio = precio
         FROM CatProducto
         WHERE id_producto = @id_producto;
 
         IF @existencia < @cantidad_vendida
         BEGIN
-            PRINT 'No hay suficiente stock del producto';
-            ROLLBACK;
-            RETURN;
+            
+            ; THROW 50003, 'No hay suficiente stock', 1;
+
         END
 
         DECLARE @id_venta INT
@@ -124,7 +124,7 @@ BEGIN
         VALUES (GETDATE(), @id_cliente);
 
         SET @id_venta = SCOPE_IDENTITY();
-        INSERT INTO tblDetalleVenta
+        INSERT INTO tblDetalleVenta (id_venta, id_producto, precio_venta, cantidad_vendida)
         VALUES(@id_venta, @id_producto, @precio, @cantidad_vendida);
 
         UPDATE CatProducto
@@ -132,6 +132,7 @@ BEGIN
         WHERE id_producto = @id_producto;
 
         COMMIT;
+
     END TRY
 
     BEGIN CATCH
@@ -139,26 +140,31 @@ BEGIN
         IF @@TRANCOUNT > 0 
         ROLLBACK;
 
-        PRINT 'ERROR' + ERROR_MESSAGE();
+        PRINT 'ERROR: ' + ERROR_MESSAGE();
         
     END CATCH
 
 END
 GO
 
-EXEC usp_agregar_venta 'ANTON', 1, 2;
+EXEC usp_agregar_venta 'ANTON', 299, 4;
 
 SELECT * FROM tblVenta;
+SELECT * FROM tblDetalleVenta;
 SELECT * FROM CatCliente;
 SELECT * FROM CatProducto;
 
+DELETE FROM tblDetalleVenta;
+DELETE FROM tblVenta;
 
 -- DELETE  from tblVenta;
 /* DROP TABLE tblDetalleVenta;
 DROP TABLE tblVenta;
 DROP TABLE CatCliente;
 DROP TABLE CatProducto;
+*/
 
 
+DROP DATABASE bdPracticas; 
 
-DROP DATABASE bdPracticas; */
+USE NORTHWND;
