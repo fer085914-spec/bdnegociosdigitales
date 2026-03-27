@@ -153,18 +153,3 @@ SELECT * FROM tblVenta;
 SELECT * FROM tblDetalleVenta;
 SELECT * FROM CatCliente;
 SELECT * FROM CatProducto;
-
-DELETE FROM tblDetalleVenta;
-DELETE FROM tblVenta;
-
--- DELETE  from tblVenta;
-/* DROP TABLE tblDetalleVenta;
-DROP TABLE tblVenta;
-DROP TABLE CatCliente;
-DROP TABLE CatProducto;
-*/
-
-
-DROP DATABASE bdPracticas; 
-
-USE NORTHWND;g
