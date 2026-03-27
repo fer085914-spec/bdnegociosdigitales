@@ -223,6 +223,7 @@ Si todas las validaciones pasan, se procede a insertar el detalle y a descontar 
         SET existencia = existencia - @cantidad_vendida
         WHERE id_producto = @id_producto;
 
+        PRINT 'Venta completada y stock actualizado';
         COMMIT; -- Confirma todos los cambios
     END TRY
 ```
@@ -247,10 +248,29 @@ GO
 ## 4. Pruebas de Uso
 ```sql
 -- Caso exitoso
-EXEC usp_agregar_venta 'ANTON', 1, 5;
-
--- Caso con error de stock (lanzará el error 50003)
-EXEC usp_agregar_venta 'ANTON', 1, 9999;
+EXEC usp_agregar_venta 'BOLID', 70, 1;
 ```
+![Diagrama de base de datos](/img/14.png)
 
-> **Resultado:** Se crea un registro en `tblVenta`, un registro en `tblDetalleVenta` y el producto con `ID 1` reduce su stock en 5 unidades.
+```sql
+-- Caso con error de cliente
+EXEC usp_agregar_venta 'AROGP', 9, 4;
+```
+![Diagrama de base de datos](/img/11.png)
+
+```sql
+-- Caso con error de producto
+EXEC usp_agregar_venta 'ANTON', 783, 4;
+```
+![Diagrama de base de datos](/img/12.png)
+
+```sql
+-- Caso con error de stock
+EXEC usp_agregar_venta 'ANTON', 3, 4320;
+```
+![Diagrama de base de datos](/img/13.png)
+
+## Tablas con ventas exitosas
+
+![Diagrama de base de datos](/img/Res.png)
+

@@ -131,6 +131,7 @@ BEGIN
         SET existencia = existencia - @cantidad_vendida
         WHERE id_producto = @id_producto;
 
+        PRINT 'Venta completada y stock actualizado';
         COMMIT;
 
     END TRY
@@ -147,7 +148,7 @@ BEGIN
 END
 GO
 
-EXEC usp_agregar_venta 'ANTON', 299, 4;
+EXEC usp_agregar_venta 'BOLID', 70, 1;
 
 SELECT * FROM tblVenta;
 SELECT * FROM tblDetalleVenta;
