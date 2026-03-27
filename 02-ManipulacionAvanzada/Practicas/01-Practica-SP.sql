@@ -167,4 +167,4 @@ DROP TABLE CatProducto;
 
 DROP DATABASE bdPracticas; 
 
-USE NORTHWND;
+USE NORTHWND;g
