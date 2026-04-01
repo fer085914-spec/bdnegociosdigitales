@@ -154,3 +154,6 @@ SELECT * FROM tblVenta;
 SELECT * FROM tblDetalleVenta;
 SELECT * FROM CatCliente;
 SELECT * FROM CatProducto;
+
+
+SELECT DB_NAME()
